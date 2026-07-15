@@ -2,7 +2,7 @@ import { verifyAccessToken } from "../lib/jwt.js";
 
 export const verifyJwt = async function (req, res, next) {
   try {
-    console.log(req.cookies);
+    // console.log(req.cookies);
     const token = req.cookies.accessToken;
     if (!token) {
       return res.status(401).json({

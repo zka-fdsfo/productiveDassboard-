@@ -4,8 +4,9 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import cookies from "cookie-parser";
 import config from "../config/config.js"; // Aapki config file
-import { signAccessToken, signRefreshToken } from "../lib/jwt.js";
+import { signAccessToken, signRefreshToken, hashToken, verifyRefreshToken } from "../lib/jwt.js";
 import { clearAuthCookies, setAuthCookies } from "../lib/cookies.js";
+
 
 export const register = async (req, res) => {
   const { username, email, password } = req.body;
@@ -50,7 +51,7 @@ export const register = async (req, res) => {
 
     const session = await Session.create({
       userId: user._id,
-      refreshToken,
+      refreshToken: hashToken(refreshToken),
       verify: true,
       expiryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
     });
@@ -77,7 +78,6 @@ export const register = async (req, res) => {
 export const login = async (req, res) => {
   const { email, password } = req.body;
 
-  console.log(email, password)
   try {
     if (!email || !password) {
       return res.status(400).json({
@@ -90,8 +90,6 @@ export const login = async (req, res) => {
     const existUser = await User.findOne({
       email,
     }).select("+password");
-
-    console.log(existUser);
 
     // * if user not exists
     if (!existUser) {
@@ -120,7 +118,7 @@ export const login = async (req, res) => {
 
     const session = await Session.create({
       userId: existUser._id,
-      refreshToken,
+      refreshToken: hashToken(refreshToken),
       verify: true,
       expiryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
     });
@@ -128,16 +126,7 @@ export const login = async (req, res) => {
     // * accessToken generated
     const accessToken = signAccessToken(payload);
 
-    // setAuthCookies(res, accessToken, refreshToken);
-    res.cookie("accessToken", accessToken, {
-      httpOnly: true,
-      maxAge: 15 * 60 * 1000, // 15min
-    });
-
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30day
-    });
+    setAuthCookies(res, accessToken, refreshToken);
 
     return res.status(200).json({
       success: true,
@@ -161,4 +150,73 @@ export const logout = async (req, res) => {
     success: true,
     message: "Logged Out Successfully.",
   });
+};
+
+export const refresh = async (req, res) => {
+  try {
+    const token = req.cookies.refreshToken;
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized User",
+      });
+    }
+
+    const isCorrectToken = await Session.findOne({
+      refreshToken: hashToken(token),
+    });
+
+    if (!isCorrectToken) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const payload = verifyRefreshToken(token);
+
+    if (!payload) {
+      return res.status(401).json({
+        success: false,
+        message: "Token Expired",
+      });
+    }
+
+    const existUser = await User.findById(payload.id);
+
+    if (!existUser) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    // refreshToken generated
+    const newRefreshToken = signRefreshToken(payload);
+    const newAccessToken = signAccessToken(payload);
+
+    await Session.findOneAndUpdate(
+      { userId: existUser._id },
+      {
+        refreshToken: hashToken(newRefreshToken),
+        expiryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+        verify: true,
+      }
+    );
+
+    setAuthCookies(res, newAccessToken, newRefreshToken);
+
+    return res.status(200).json({
+      success: true,
+      message: "Refreshed."
+    })
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({
+      success: false,
+      message: "internal server error",
+    });
+  }
+
 };
