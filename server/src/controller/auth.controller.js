@@ -77,6 +77,7 @@ export const register = async (req, res) => {
 export const login = async (req, res) => {
   const { email, password } = req.body;
 
+  console.log(email, password)
   try {
     if (!email || !password) {
       return res.status(400).json({
@@ -89,6 +90,8 @@ export const login = async (req, res) => {
     const existUser = await User.findOne({
       email,
     }).select("+password");
+
+    console.log(existUser);
 
     // * if user not exists
     if (!existUser) {
@@ -125,16 +128,25 @@ export const login = async (req, res) => {
     // * accessToken generated
     const accessToken = signAccessToken(payload);
 
-    setAuthCookies(res, accessToken, refreshToken);
+    // setAuthCookies(res, accessToken, refreshToken);
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      maxAge: 15 * 60 * 1000, // 15min
+    });
 
-    res.status(200).json({
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30day
+    });
+
+    return res.status(200).json({
       success: true,
       message: "User Logged In",
       payload,
     });
   } catch (err) {
     console.log(err);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "internal server error",
     });
