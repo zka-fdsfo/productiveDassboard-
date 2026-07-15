@@ -27,7 +27,7 @@ export const register = async (req, res) => {
     if (existUser) {
       return res.status(409).json({
         success: false,
-        message: "Use already exists",
+        message: "User already exists",
       });
     }
 
@@ -50,11 +50,11 @@ export const register = async (req, res) => {
     const session = await Session.create({
       refreshToken,
       verify: true,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      expiryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
     });
 
     // * accessToken generated
-    const accessToken = signAccessToken(payload);
+    const accessToken = signAccessToken(payload); 
 
     res.cookie("accessToken", accessToken, {
       httpOnly: true,
@@ -70,7 +70,6 @@ export const register = async (req, res) => {
       success: true,
       message: "User register successfully",
       payload,
-      token,
     });
   } catch (error) {
     console.log(error);
