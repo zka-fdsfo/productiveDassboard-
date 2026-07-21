@@ -29,7 +29,7 @@ export const register = async (req, res) => {
     if (existUser) {
       return res.status(409).json({
         success: false,
-        message: "User already exists",
+        message: "something went wrong",
       });
     }
 
@@ -97,7 +97,7 @@ export const login = async (req, res) => {
     if (!existUser) {
       return res.status(400).json({
         success: false,
-        message: "User not exists",
+        message: "Something went wrong",
       });
     }
 
@@ -132,7 +132,7 @@ export const login = async (req, res) => {
     const accessToken = signAccessToken(payload);
 
     setAuthCookies(res, accessToken, refreshToken);
-
+    
     return res.status(200).json({
       success: true,
       message: "User Logged In",

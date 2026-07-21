@@ -1,16 +1,51 @@
-import { useState } from "react";
-import { useContext } from "react";
+import { useState, useContext } from "react";
 import { useForm } from "react-hook-form";
 import { Eye, EyeOff, AlertCircle } from "lucide-react";
 import { useRegister } from "../hooks/useAuth.js";
 import { AuthContext } from "../context/auth.context.jsx";
 
+// Calculates a simple password strength score based on length and character variety
+const getPasswordStrength = (password) => {
+  if (!password) {
+    return { label: "", score: 0, color: "" };
+  }
+
+  if (password.length < 8) {
+    return { label: "Too short", score: 0, color: "bg-red-500" };
+  }
+
+  let score = 0;
+  if (password.length >= 8) score++;
+  if (password.length >= 12) score++;
+  if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++;
+  if (/[0-9]/.test(password)) score++;
+  if (/[^a-zA-Z0-9]/.test(password)) score++;
+
+  if (score <= 2) {
+    return { label: "Weak", score: 1, color: "bg-red-500" };
+  } else if (score <= 3) {
+    return { label: "Medium", score: 2, color: "bg-yellow-500" };
+  } else {
+    return { label: "Strong", score: 3, color: "bg-green-500" };
+  }
+};
+
 const RegisterPage = () => {
-  const { register, reset, handleSubmit, formState: { errors } } = useForm();
+  const {
+    register,
+    reset,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm();
+
   const registerMutation = useRegister();
-  const { login } = useContext(AuthContext); // was called before but never imported — wired up here
+  const { login } = useContext(AuthContext);
 
   const [showPassword, setShowPassword] = useState(false);
+
+  const passwordValue = watch("password", "");
+  const strength = getPasswordStrength(passwordValue);
 
   // Pull a human-readable message out of whatever shape the backend error takes
   const getErrorMessage = (error) => {
@@ -36,25 +71,30 @@ const RegisterPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-slate-100 p-4">
-      <div className="w-full max-w-md bg-white/80 backdrop-blur-xl p-8 rounded-3xl shadow-2xl shadow-indigo-100 border border-white/60">
+    <div
+      className="relative min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat px-4"
+      style={{
+        backgroundImage:
+          "url('https://i.pinimg.com/1200x/99/d3/97/99d397ed62159b5a7da6b2d8c7384a86.jpg')",
+      }}
+    >
+      {/* Dark Overlay */}
+      <div className="absolute inset-0 bg-[#040817]/70 backdrop-blur-[2px]" />
 
-        {/* Header */}
+      {/* Register Card */}
+      <div className="relative z-10 w-full max-w-md rounded-[30px] p-6">
+        {/* Heading */}
         <div className="text-center mb-8">
-          <div className="mx-auto mb-4 h-12 w-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-200">
-            <span className="text-white font-bold text-lg">A</span>
-          </div>
-          <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Create account</h2>
-          <p className="text-sm text-slate-500 mt-2">Join us today — it only takes a minute.</p>
+          <h2 className="text-4xl font-bold text-white">Create Account</h2>
+          <p className="text-gray-400 mt-2 text-lg">
+            Join us today — it only takes a minute
+          </p>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
-
           {/* Username */}
           <div>
-            <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">
-              Username
-            </label>
+            <label className="block text-gray-300 text-sm mb-2">Username</label>
             <input
               {...register("username", {
                 required: "Username is required",
@@ -63,14 +103,14 @@ const RegisterPage = () => {
               type="text"
               placeholder="johndoe"
               aria-invalid={errors.username ? "true" : "false"}
-              className={`w-full px-4 py-3 rounded-xl border bg-slate-50 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 transition duration-200 ${
+              className={`w-full rounded-full px-5 py-3 bg-[#0b1327ad] text-white placeholder-gray-500 border outline-none transition ${
                 errors.username
-                  ? "border-red-400 focus:ring-red-200 focus:bg-white"
-                  : "border-slate-200 focus:ring-indigo-100 focus:border-indigo-500 focus:bg-white"
+                  ? "border-red-500"
+                  : "border-blue-500/30 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20"
               }`}
             />
             {errors.username && (
-              <p className="text-xs font-medium text-red-500 mt-1.5 flex items-center gap-1">
+              <p className="text-red-400 text-xs mt-2 flex items-center gap-1">
                 <AlertCircle className="h-3.5 w-3.5" /> {errors.username.message}
               </p>
             )}
@@ -78,9 +118,7 @@ const RegisterPage = () => {
 
           {/* Email */}
           <div>
-            <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">
-              Email address
-            </label>
+            <label className="block text-gray-300 text-sm mb-2">Email Address</label>
             <input
               {...register("email", {
                 required: "Email is required",
@@ -90,16 +128,16 @@ const RegisterPage = () => {
                 },
               })}
               type="email"
-              placeholder="you@example.com"
+              placeholder="name@company.com"
               aria-invalid={errors.email ? "true" : "false"}
-              className={`w-full px-4 py-3 rounded-xl border bg-slate-50 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 transition duration-200 ${
+              className={`w-full rounded-full px-5 py-3 bg-[#0b1327ad] text-white placeholder-gray-500 border outline-none transition ${
                 errors.email
-                  ? "border-red-400 focus:ring-red-200 focus:bg-white"
-                  : "border-slate-200 focus:ring-indigo-100 focus:border-indigo-500 focus:bg-white"
+                  ? "border-red-500"
+                  : "border-blue-500/30 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20"
               }`}
             />
             {errors.email && (
-              <p className="text-xs font-medium text-red-500 mt-1.5 flex items-center gap-1">
+              <p className="text-red-400 text-xs mt-2 flex items-center gap-1">
                 <AlertCircle className="h-3.5 w-3.5" /> {errors.email.message}
               </p>
             )}
@@ -107,22 +145,20 @@ const RegisterPage = () => {
 
           {/* Password with show/hide toggle */}
           <div>
-            <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">
-              Password
-            </label>
+            <label className="block text-gray-300 text-sm mb-2">Password</label>
             <div className="relative">
               <input
                 {...register("password", {
                   required: "Password is required",
-                  minLength: { value: 6, message: "Minimum password length is 6 characters" },
+                  minLength: { value: 8, message: "Password must be at least 8 characters" },
                 })}
                 type={showPassword ? "text" : "password"}
                 placeholder="••••••••"
                 aria-invalid={errors.password ? "true" : "false"}
-                className={`w-full px-4 py-3 pr-11 rounded-xl border bg-slate-50 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 transition duration-200 ${
+                className={`w-full rounded-full px-5 py-3 pr-11 bg-[#0b1327ad] text-white placeholder-gray-500 border outline-none transition ${
                   errors.password
-                    ? "border-red-400 focus:ring-red-200 focus:bg-white"
-                    : "border-slate-200 focus:ring-indigo-100 focus:border-indigo-500 focus:bg-white"
+                    ? "border-red-500"
+                    : "border-blue-500/30 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20"
                 }`}
               />
               <button
@@ -130,23 +166,53 @@ const RegisterPage = () => {
                 onClick={() => setShowPassword((prev) => !prev)}
                 tabIndex={-1}
                 aria-label={showPassword ? "Hide password" : "Show password"}
-                className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 hover:text-indigo-600 transition-colors"
+                className="absolute inset-y-0 right-0 flex items-center px-4 text-gray-400 hover:text-blue-400 transition-colors"
               >
                 {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
               </button>
             </div>
+
             {errors.password && (
-              <p className="text-xs font-medium text-red-500 mt-1.5 flex items-center gap-1">
+              <p className="text-red-400 text-xs mt-2 flex items-center gap-1">
                 <AlertCircle className="h-3.5 w-3.5" /> {errors.password.message}
               </p>
+            )}
+
+            {/* Password strength meter — only shows once user starts typing and no length error */}
+            {!errors.password && passwordValue && (
+              <div className="mt-2">
+                <div className="flex gap-1">
+                  {[0, 1, 2].map((i) => (
+                    <div
+                      key={i}
+                      className={`h-1.5 flex-1 rounded-full transition-colors ${
+                        i < strength.score ? strength.color : "bg-gray-600/50"
+                      }`}
+                    />
+                  ))}
+                </div>
+                <p
+                  className={`text-xs mt-1 ${
+                    strength.score === 1
+                      ? "text-red-400"
+                      : strength.score === 2
+                      ? "text-yellow-400"
+                      : strength.score === 3
+                      ? "text-green-400"
+                      : "text-gray-400"
+                  }`}
+                >
+                  {strength.label}
+                </p>
+              </div>
             )}
           </div>
 
           {/* Backend / credentials error */}
           {registerMutation.isError && (
-            <div className="p-3 bg-red-50 border border-red-100 rounded-xl text-xs font-medium text-red-600 flex items-start gap-2">
-              <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-              <span>{getErrorMessage(registerMutation.error)}</span>
+            <div className="rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-2.5 flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-red-400" />
+              <span className="text-red-400 text-sm">{getErrorMessage(registerMutation.error)}</span>
             </div>
           )}
 
@@ -154,11 +220,7 @@ const RegisterPage = () => {
           <button
             type="submit"
             disabled={registerMutation.isPending}
-            className={`w-full py-3.5 px-4 rounded-xl font-semibold text-white tracking-wide shadow-md transition duration-200 transform active:scale-[0.99] ${
-              registerMutation.isPending
-                ? "bg-slate-400 cursor-not-allowed shadow-none"
-                : "bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-indigo-200 hover:shadow-lg"
-            }`}
+            className="w-full rounded-full bg-gradient-to-r from-blue-600 to-indigo-500 py-3.5 font-semibold text-white transition hover:shadow-[0_0_30px_rgba(59,130,246,.5)] hover:scale-[1.02] active:scale-95 disabled:opacity-60"
           >
             {registerMutation.isPending ? (
               <span className="flex items-center justify-center gap-2">
@@ -173,6 +235,14 @@ const RegisterPage = () => {
             )}
           </button>
         </form>
+
+        {/* Bottom */}
+        <div className="mt-8 text-center text-sm text-gray-400">
+          Already have an account?{" "}
+          <a href="/login" className="text-blue-400 hover:text-blue-300">
+            Sign In
+          </a>
+        </div>
       </div>
     </div>
   );
